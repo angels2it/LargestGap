@@ -32,7 +32,7 @@ namespace LargestGap
 
         private static void TestRandomData()
         {
-            for (int i = 0; i < 10000; i++)
+            for (int i = 0; i < 10000000; i++)
             {
                 InitRandomData();
                 StartSort();
@@ -173,43 +173,19 @@ namespace LargestGap
                 List<Item> itemNeedFormat;
                 if (sameRouteAisle == null || sameRouteAisle.Count == 0)
                 {
-                    itemNeedFormat = _aisles.Where(e => e.Aisle == checkAisle)
-                        .OrderBy(e => e.Bin)
-                        .ToList();
+                    itemNeedFormat = GetItemNeedFormatByAisle(checkAisle);
                     ReformatItems(_aisles, itemNeedFormat, checkAisle);
                     NormalLargestGapSort(_aisles, checkAisle);
                     return;
                 }
-                itemNeedFormat =
-                        _aisles
-                            .Where(e => e.Aisle >= checkAisle && e.Aisle <= sameRouteAisle.First().Aisle)
-                            .OrderByDescending(e => orderFunc(e, checkAisle, sameRouteAisle.First().Aisle))
-                            .ThenBy(e => e.Bin)
-                            .ToList();
+                itemNeedFormat = GetItemNeedFormatByAisle(checkAisle);
                 ReformatItems(_aisles, itemNeedFormat, sameRouteAisle.First().Aisle);
                 NormalLargestGapSort(_aisles, sameRouteAisle.First().Aisle);
                 return;
             }
-            var lastItemOfFirstAisle = firstAisleItems.Last();
-            // from item to top
-            var nextBinFromTop = nextAisle.Last();
-            var nextOfNextAisle = _aisleLayout.GetNextAisle(sortedList, nextBinFromTop.Aisle);
-            var nextBinOfNextAisleFromTop = nextOfNextAisle?.LastOrDefault();
-            // Bin with min distance to get route from top line
-            var nextBin = nextBinFromTop.Bin > nextBinOfNextAisleFromTop?.Bin
-                ? nextBinFromTop
-                : nextBinOfNextAisleFromTop ?? nextBinFromTop;
-            var distance1 = _aisleLayout.GetDistanceForTopRoute(lastItemOfFirstAisle, nextBin);
-            // from item to bottom and next item
-            var nextBinFromBottom = nextAisle.First();
-            var nextBinOfNextAisleFromBottom = nextOfNextAisle?.LastOrDefault();
-            // Bin with min distance for get route from bottom line
-            nextBin = nextBinFromBottom.Bin > nextBinOfNextAisleFromBottom?.Bin
-                ? nextBinOfNextAisleFromBottom
-                : nextBinFromBottom;
-            var distance2 = _aisleLayout.GetDistanceForBottomRoute(lastItemOfFirstAisle, nextBin);
             // need reformat
-            if (distance1 > distance2)
+            Item nextBinFromTop;
+            if (IsBottomRoute(sortedList, checkAisle, out nextBinFromTop))
             {
                 StartSortForBottomRoute(sortedList, checkAisle, nextBinFromTop);
                 return;
@@ -217,20 +193,10 @@ namespace LargestGap
             sameRouteAisle = _aisleLayout.GetSameRouteAisle(sortedList, checkAisle);
             if (sameRouteAisle != null && sameRouteAisle.Any())
             {
-                var itemNeedFormat =
-                   sortedList.Where(e => e.Aisle >= checkAisle && e.Aisle <= sameRouteAisle.First().Aisle)
-                       .OrderByDescending(e => orderFunc(e, checkAisle, sameRouteAisle.First().Aisle))
-                       .ThenBy(e => e.Bin)
-                       .ToList();
+                var itemNeedFormat = GetItemNeedFormatByAisle(checkAisle);
                 ReformatItems(sortedList, itemNeedFormat, checkAisle);
                 if (itemNeedFormat.All(e => e.Bin <= haft))
                 {
-                    //if (nextAisle.First().Aisle % 2 == 0 && nextAisle.First().Aisle - checkAisle <= 2)
-                    //    SpecificFormat(sortedList, nextAisle.First().Aisle);
-                    //else
-                    //{
-
-                    //}
                     SpecificFormatForNextAisle(sortedList, nextAisle.First().Aisle);
                 }
                 else
@@ -250,6 +216,53 @@ namespace LargestGap
                 else
                     NormalLargestGapSort(sortedList, checkAisle);
             }
+        }
+
+        private static List<Item> GetItemNeedFormatByAisle(int checkAisle)
+        {
+            var sameRouteAisle = _aisleLayout.GetSameRouteAisle(_aisles, checkAisle);
+            // has same route aisle
+            if (sameRouteAisle != null && sameRouteAisle.Any())
+                return _aisles
+                    .Where(e => e.Aisle >= checkAisle && e.Aisle <= sameRouteAisle.First().Aisle)
+                    .OrderByDescending(e => orderFunc(e, checkAisle, sameRouteAisle.First().Aisle))
+                    .ThenBy(e => e.Bin)
+                    .ToList();
+            // nope
+            return _aisles
+                .Where(e => e.Aisle == checkAisle)
+                .OrderBy(e => e.Bin)
+                .ToList();
+        }
+
+        private static bool IsBottomRoute(List<Item> sortedList, int checkAisle, out Item nextBinFromTop)
+        {
+            var nextAisle = _aisleLayout.GetNextAisle(sortedList, checkAisle);
+            if (nextAisle == null)
+            {
+                nextBinFromTop = null;
+                return false;
+            }
+            var firstAisleItems = sortedList.Where(e => e.Aisle == checkAisle).OrderBy(e => e.Bin);
+            var lastItemOfFirstAisle = firstAisleItems.Last();
+            // from item to top
+            nextBinFromTop = nextAisle.Last();
+            var nextOfNextAisle = _aisleLayout.GetNextAisle(sortedList, nextBinFromTop.Aisle);
+            var nextBinOfNextAisleFromTop = nextOfNextAisle?.LastOrDefault();
+            // Bin with min distance to get route from top line
+            var nextBin = nextBinFromTop.Bin > nextBinOfNextAisleFromTop?.Bin
+                ? nextBinFromTop
+                : nextBinOfNextAisleFromTop ?? nextBinFromTop;
+            var distance1 = _aisleLayout.GetDistanceForTopRoute(lastItemOfFirstAisle, nextBin);
+            // from item to bottom and next item
+            var nextBinFromBottom = nextAisle.First();
+            var nextBinOfNextAisleFromBottom = nextOfNextAisle?.LastOrDefault();
+            // Bin with min distance for get route from bottom line
+            nextBin = nextBinFromBottom.Bin > nextBinOfNextAisleFromBottom?.Bin
+                ? nextBinOfNextAisleFromBottom
+                : nextBinFromBottom;
+            var distance2 = _aisleLayout.GetDistanceForBottomRoute(lastItemOfFirstAisle, nextBin);
+            return distance1 > distance2;
         }
 
         private static void StartSortForBottomRoute(List<Item> sortedList, int checkAisle, Item nextBinFromTop)
