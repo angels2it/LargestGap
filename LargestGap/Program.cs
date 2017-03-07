@@ -6,431 +6,327 @@ namespace LargestGap
 {
     class Program
     {
-        static List<Item> _aisles;
-        static int Aisle = 16;
-        public static int Bin = 20;
-        private static int haft = Bin / 2;
-        static readonly int _aisleStep = 2;
-        static List<Item> _lineFormated;
-        private static IAisleLayoutProvider _aisleLayout;
+        private static LayoutConfig _layout;
+        private static List<Item> _data;
+        private static List<Item> _formated;
         static void Main(string[] args)
         {
-            _aisleLayout = new AisleLayoutProvider();
-            InitLineFormat();
-            //InitData1();
-            //InitData2();
-            //InitData3();
-            //InitData4();
-            //InitData6();
-            //InitData7();
-            //InitData5();
-            //InitData8();
-            //StartSort();
-            TestRandomData();
+            InitLayout();
+            InitData();
+            Sort();
+            Print();
             Console.ReadLine();
         }
 
-        private static void TestRandomData()
+        private static void Print()
         {
-            for (int i = 0; i < 10000000; i++)
-            {
-                InitRandomData();
-                StartSort();
-                // check failed case
-                for (int j = 1; j < _aisles.Count - 1; j++)
-                {
-                    // mid condition
-                    if (_aisles[j - 1].Bin > 10 && _aisles[j].Bin <= 10 && _aisles.Skip(j).Any(e => e.Bin > 10))
-                    {
-                        Console.WriteLine("Failed");
-                        break;
-                    }
-                    // mid condition
-                    if (_aisles[j].Bin > 10 && _aisles[j + 1].Bin <= 10 && _aisles.Skip(j + 1).Any(e => e.Bin > 10))
-                    {
-                        Console.WriteLine("Failed");
-                        break;
-                    }
-                    if (_aisles[j - 1].Bin <= 10 && _aisles[j].Bin > 10 && _aisles[j + 1].Bin <= 10 && _aisles.Skip(j + 1).Any(e => e.Bin > 10))
-                    {
-                        Console.WriteLine("Failed");
-                        break;
-                    }
-
-                    // check bottom route and aisle same route
-                    var firstAisle = _aisles[j - 1];
-                    var nextAisle = _aisles[j];
-
-                    // [2-3] - [3-1]
-                    if (firstAisle.Aisle % 2 == 0 && nextAisle.Aisle - firstAisle.Aisle == 1 &&
-                        firstAisle.Bin > nextAisle.Bin &&
-                        _aisles.Where(e => e.Aisle <= firstAisle.Aisle).All(e => e.Bin <= 10))
-                    {
-                        Console.WriteLine("Failed");
-                        break;
-                    }
-
-                    firstAisle = _aisles[j];
-                    nextAisle = _aisles[j + 1];
-                    if (firstAisle.Aisle % 2 == 0 && nextAisle.Aisle - firstAisle.Aisle == 1 &&
-                        firstAisle.Bin > nextAisle.Bin &&
-                        _aisles.Where(e => e.Aisle <= firstAisle.Aisle).All(e => e.Bin <= 10))
-                    {
-                        Console.WriteLine("Failed");
-                        break;
-                    }
-                }
-                Console.WriteLine("++++++++++++++++++++++++++");
-                _aisles.Clear();
-            }
-        }
-
-        private static void InitData8()
-        {
-            _aisles = new List<Item>()
-            {
-                new Item() {Aisle = 16, Bin = 2},
-                new Item() {Aisle = 16, Bin = 9},
-                new Item() {Aisle = 1, Bin = 9},
-                new Item() {Aisle = 16, Bin = 20},
-                //new Item() {Aisle = 2, Bin = 4},
-                //new Item() {Aisle = 5, Bin = 3},
-                //new Item() {Aisle = 6, Bin = 10},
-                //new Item() {Aisle = 9, Bin = 1},
-                //new Item() {Aisle = 13, Bin = 7},
-                //new Item() {Aisle = 13, Bin = 8},
-                //new Item() {Aisle = 15, Bin = 12},
-                //new Item() {Aisle = 15, Bin =8},
-                //new Item() {Aisle =15, Bin = 15},
-
-                //new Item() {Aisle = 2, Bin = 1},
-                //new Item() {Aisle = 4, Bin = 8},
-                //new Item() {Aisle = 5, Bin = 2},
-                //new Item() {Aisle = 5, Bin = 9},
-                //new Item() {Aisle = 7, Bin = 17},
-                //new Item() {Aisle = 6, Bin = 19},
-                //new Item() {Aisle = 16, Bin = 12},
-                //new Item() {Aisle = 16, Bin =13},
-                //new Item() {Aisle =12, Bin = 10},
-                //new Item() {Aisle = 9, Bin =8},
-            };
-        }
-        static Random r = new Random();
-        private static void InitRandomData()
-        {
-            if (_aisles == null)
-                _aisles = new List<Item>();
-            if (_aisles.Count == 10)
-                return;
-            int aisle, bin;
-
-            do
-            {
-                aisle = r.Next(1, Aisle + 1);
-                bin = r.Next(1, Bin + 1);
-            } while (_aisles.Any(e => e.Aisle == aisle && e.Bin == bin));
-            _aisles.Add(new Item()
-            {
-                Aisle = aisle,
-                Bin = bin
-            });
-            InitRandomData();
-        }
-
-        private static Func<Item, int, int, bool> orderFunc =
-            (e, aisle, sameRouteAisle) => e.Aisle == aisle || (e.Aisle == sameRouteAisle);
-        private static void StartSort()
-        {
-            var minAisle = _aisles.Min(e => e.Aisle);
-            SpecificFormat(_aisles, minAisle);
-            foreach (var item in _aisles)
+            foreach (var item in _formated)
             {
                 Console.WriteLine(item.ToString());
             }
         }
 
-        private static void SpecificFormat(List<Item> sortedList, int checkAisle)
+        private static void Sort()
         {
-            var nextAisle = _aisleLayout.GetNextAisle(sortedList, checkAisle);
-            if (nextAisle == null || nextAisle.Count == 0)
-            {
-                if (sortedList.All(e => e.Aisle == checkAisle))
-                {
-                    var itemNeedFormat = _aisles
-                                .OrderBy(e => e.Bin)
-                                .ToList();
-                    ReformatItems(_aisles, itemNeedFormat, checkAisle);
-                }
-                else
-                    NormalLargestGapSort(_aisles, checkAisle - 1);
-                return;
-            }
-            var firstAisleItems = sortedList.Where(e => e.Aisle == checkAisle).OrderBy(e => e.Bin);
-            List<Item> sameRouteAisle;
-            if (firstAisleItems.Any(e => e.Bin > haft))
-            {
-                sameRouteAisle = _aisleLayout.GetSameRouteAisle(_aisles, checkAisle);
-                List<Item> itemNeedFormat;
-                if (sameRouteAisle == null || sameRouteAisle.Count == 0)
-                {
-                    itemNeedFormat = GetItemNeedFormatByAisle(checkAisle);
-                    ReformatItems(_aisles, itemNeedFormat, checkAisle);
-                    NormalLargestGapSort(_aisles, checkAisle);
-                    return;
-                }
-                itemNeedFormat = GetItemNeedFormatByAisle(checkAisle);
-                ReformatItems(_aisles, itemNeedFormat, sameRouteAisle.First().Aisle);
-                NormalLargestGapSort(_aisles, sameRouteAisle.First().Aisle);
-                return;
-            }
-            // need reformat
-            Item nextBinFromTop;
-            if (IsBottomRoute(sortedList, checkAisle, out nextBinFromTop))
-            {
-                StartSortForBottomRoute(sortedList, checkAisle, nextBinFromTop);
-                return;
-            }
-            sameRouteAisle = _aisleLayout.GetSameRouteAisle(sortedList, checkAisle);
-            if (sameRouteAisle != null && sameRouteAisle.Any())
-            {
-                var itemNeedFormat = GetItemNeedFormatByAisle(checkAisle);
-                ReformatItems(sortedList, itemNeedFormat, checkAisle);
-                if (itemNeedFormat.All(e => e.Bin <= haft))
-                {
-                    SpecificFormatForNextAisle(sortedList, nextAisle.First().Aisle);
-                }
-                else
-                {
-                    CheckNormalLargestGap(sortedList, itemNeedFormat, nextAisle.First().Aisle);
-                }
-            }
+            _formated = new List<Item>();
+            // for min
+            if (_layout.ClockWise)
+                SortClockWise();
             else
-            {
-                var itemNeedFormat =
-                        sortedList.Where(e => e.Aisle == checkAisle)
-                            .OrderBy(e => e.Bin)
-                            .ToList();
-                ReformatItems(sortedList, itemNeedFormat, checkAisle);
-                if (itemNeedFormat.Max(e => e.Bin) <= haft)
-                    SpecificFormat(sortedList, nextAisle.First().Aisle);
-                else
-                    NormalLargestGapSort(sortedList, checkAisle);
-            }
-        }
-
-        private static List<Item> GetItemNeedFormatByAisle(int checkAisle)
-        {
-            var sameRouteAisle = _aisleLayout.GetSameRouteAisle(_aisles, checkAisle);
-            // has same route aisle
-            if (sameRouteAisle != null && sameRouteAisle.Any())
-                return _aisles
-                    .Where(e => e.Aisle >= checkAisle && e.Aisle <= sameRouteAisle.First().Aisle)
-                    .OrderByDescending(e => orderFunc(e, checkAisle, sameRouteAisle.First().Aisle))
-                    .ThenBy(e => e.Bin)
-                    .ToList();
-            // nope
-            return _aisles
-                .Where(e => e.Aisle == checkAisle)
-                .OrderBy(e => e.Bin)
-                .ToList();
-        }
-
-        private static bool IsBottomRoute(List<Item> sortedList, int checkAisle, out Item nextBinFromTop)
-        {
-            var nextAisle = _aisleLayout.GetNextAisle(sortedList, checkAisle);
-            if (nextAisle == null)
-            {
-                nextBinFromTop = null;
-                return false;
-            }
-            var firstAisleItems = sortedList.Where(e => e.Aisle == checkAisle).OrderBy(e => e.Bin);
-            var lastItemOfFirstAisle = firstAisleItems.Last();
-            // from item to top
-            nextBinFromTop = nextAisle.Last();
-            var nextOfNextAisle = _aisleLayout.GetNextAisle(sortedList, nextBinFromTop.Aisle);
-            var nextBinOfNextAisleFromTop = nextOfNextAisle?.LastOrDefault();
-            // Bin with min distance to get route from top line
-            var nextBin = nextBinFromTop.Bin > nextBinOfNextAisleFromTop?.Bin
-                ? nextBinFromTop
-                : nextBinOfNextAisleFromTop ?? nextBinFromTop;
-            var distance1 = _aisleLayout.GetDistanceForTopRoute(lastItemOfFirstAisle, nextBin);
-            // from item to bottom and next item
-            var nextBinFromBottom = nextAisle.First();
-            var nextBinOfNextAisleFromBottom = nextOfNextAisle?.LastOrDefault();
-            // Bin with min distance for get route from bottom line
-            nextBin = nextBinFromBottom.Bin > nextBinOfNextAisleFromBottom?.Bin
-                ? nextBinOfNextAisleFromBottom
-                : nextBinFromBottom;
-            var distance2 = _aisleLayout.GetDistanceForBottomRoute(lastItemOfFirstAisle, nextBin);
-            return distance1 > distance2;
-        }
-
-        private static void StartSortForBottomRoute(List<Item> sortedList, int checkAisle, Item nextBinFromTop)
-        {
-            var sameRouteAisle = _aisleLayout.GetSameRouteAisle(sortedList, nextBinFromTop.Aisle);
-            var effectAsile = sameRouteAisle != null && sameRouteAisle.Any()
-                ? sameRouteAisle.First().Aisle
-                : nextBinFromTop.Aisle;
-            var itemNeedFormat =
-                    sortedList.Where(e => e.Aisle >= checkAisle && e.Aisle <= effectAsile)
-                        .OrderByDescending(e => e.Aisle == checkAisle || (checkAisle % 2 == 0 && e.Aisle - checkAisle == 1))
-                        .ThenBy(e => e.Bin)
-                        .ToList();
-            ReformatItems(sortedList, itemNeedFormat, checkAisle);
-            if (itemNeedFormat.Max(e => e.Bin) <= haft)
-            {
-                SpecificFormatForNextAisle(sortedList, effectAsile);
-            }
-            else
-            {
-                CheckNormalLargestGap(sortedList, itemNeedFormat, effectAsile);
-            }
-        }
-
-        private static void SpecificFormatForNextAisle(List<Item> sortedList, int effectAsile)
-        {
-            var nextAisleNeedFormat = _aisleLayout.GetNextAisle(sortedList, effectAsile)?.FirstOrDefault();
-            if (nextAisleNeedFormat != null)
-                SpecificFormat(sortedList, nextAisleNeedFormat.Aisle);
-        }
-
-        private static void CheckNormalLargestGap(List<Item> sortedList, List<Item> itemNeedFormat, int effectAsile)
-        {
-            if (effectAsile % 2 != 0 || itemNeedFormat.Any(e => e.Aisle == effectAsile && e.Bin > haft))
-                NormalLargestGapSort(sortedList, effectAsile);
-            else
-            {
-                var nextAisleNeedFormat = _aisleLayout.GetNextAisle(sortedList, effectAsile)?.FirstOrDefault();
-                //check if need format for next Aisle
-                if (nextAisleNeedFormat != null)
-                    NormalLargestGapSort(sortedList, nextAisleNeedFormat.Aisle);
-            }
-        }
-
-        private static void NormalLargestGapSort(List<Item> sortedList, int checkAisle)
-        {
-            var unSortItems = sortedList.Where(e => e.Aisle > checkAisle).ToList();
-            unSortItems =
-            unSortItems.OrderBy(e => _lineFormated.FindIndex(f => f.Aisle == e.Aisle && f.Bin == e.Bin))
-                .ToList();
-            ReformatItems(sortedList, unSortItems, checkAisle);
-        }
-
-        private static void ReformatItems(List<Item> sortedList, List<Item> itemNeedFormat, int minAisle)
-        {
-            sortedList.RemoveAll(itemNeedFormat.Contains);
-            var addIndex = sortedList.FindIndex(e => e.Aisle > minAisle);
-            if (addIndex == -1)
-            {
-                addIndex = sortedList.FindLastIndex(e => e.Aisle <= minAisle);
-                if (addIndex <= sortedList.Count - 1)
-                    addIndex++;
-            }
-            sortedList.InsertRange(addIndex, itemNeedFormat);
-        }
-
-
-        private static void InitLineFormat()
-        {
-            _lineFormated = new List<Item>();
-            if (Aisle < 1)
-            {
-                Console.WriteLine("Aisle greater than 1");
+                SortForCounterClockWise();
+            if (_layout.StartRoute <= 1)
                 return;
-            }
-            if (Aisle % 2 != 0)
-            {
-                Console.WriteLine("Aisle must be even number");
+            // default start route (1)
+            var defaultStartRoute = _layout.Routes.First(e => e.Index == _layout.Routes.Min(f => f.Index));
+            // get start item of layout
+            var startItem = GetStartingItem(_layout.StartRoute);
+            if (startItem == null)
                 return;
-            }
-            int halfBin = Bin / 2;
-            if (Aisle == 1)
-            {
-                _lineFormated.AddRange(GetLineFormated(1, 1, 20, true));
-                PrintAisleFormated();
+            // if it's same with default option - do nothing
+            if (defaultStartRoute.Aisles.Any(e => e.Aisle == startItem.Aisle))
                 return;
-            }
-            if (Aisle == 2)
+            // index to start item
+            var index = _formated.FindIndex(e => e.Aisle == startItem.Aisle && e.Bin == startItem.Bin);
+            // move it to top
+            var itemNeedFormat = _formated.GetRange(index, _formated.Count - index);
+            foreach (var item in itemNeedFormat)
             {
-                _lineFormated.AddRange(GetLineFormated(1, 1, 20, true));
-                _lineFormated.AddRange(GetLineFormated(2, 20, 1, false));
-                PrintAisleFormated();
-                return;
+                _formated.Remove(item);
             }
-            for (int i = 1; i <= (Aisle - 1) * 2; i++)
-            {
-                var currentAisle = i <= Aisle ? i : Aisle * 2 - i;
-                bool isForward = i < Aisle;
-                // is plus Bin step
-                bool startCount = (i - 1) % _aisleStep == 0;
-                int start;
-                int end;
-                // first line we will read all Bin from 1 - total Bin
-                if (i == 1)
-                {
-                    start = 1;
-                    end = 20;
-                }
-                // last line we will read all Bin from total Bin - 1
-                else if (i == Aisle)
-                {
-                    start = 20;
-                    end = 1;
-                }
-                else
-                {
-                    if (startCount)
-                    {
-                        start = isForward ? halfBin + 1 : 1;
-                        end = isForward ? Bin : halfBin;
-                    }
-                    else
-                    {
-                        start = isForward ? Bin : halfBin;
-                        end = isForward ? halfBin + 1 : 1;
-                    }
-                }
-                _lineFormated.AddRange(GetLineFormated(currentAisle, start, end, startCount));
-            }
-            PrintAisleFormated();
+            _formated.InsertRange(0, itemNeedFormat);
         }
 
-        private static void PrintAisleFormated()
+        private static void SortForCounterClockWise()
         {
-            return;
-            foreach (var item in _lineFormated)
+            var minAisle = GetMinAisle();
+            var minRoute = GetRouteOfAisle(minAisle);
+            var maxAisleAisle = GetMaxAisle();
+            var maxRoute = GetRouteOfAisle(maxAisleAisle);
+            for (int i = minRoute.Index + 1; i < maxRoute.Index; i++)
             {
-                Console.WriteLine(item.ToString());
+                SortForBottomRoute(i);
+            }
+            // for min
+            SortForMaxRoute();
+            // for aisle between max - min
+            for (int i = maxRoute.Index - 1; i > minRoute.Index; i--)
+            {
+                SortForTopRoute(i);
+            }
+            SortForMinRoute();
+        }
+
+        private static void SortClockWise()
+        {
+            // for starting point is route 1
+            var minAisle = GetMinAisle();
+            var minRoute = GetRouteOfAisle(minAisle);
+            var maxAisleAisle = GetMaxAisle();
+            var maxRoute = GetRouteOfAisle(maxAisleAisle);
+            SortForMinRoute();
+            for (int i = minRoute.Index + 1; i < maxRoute.Index; i++)
+            {
+                SortForTopRoute(i);
+            }
+            // for max
+            SortForMaxRoute();
+            for (int i = maxRoute.Index - 1; i > minRoute.Index; i--)
+            {
+                SortForBottomRoute(i);
             }
         }
 
-        private static List<Item> GetLineFormated(int currentAisle, int start, int end, bool startCount)
+        private static void SortForMaxRoute()
         {
-            List<Item> items = new List<Item>();
-            if (startCount)
-                for (int j = start; j <= end; j++)
-                {
-                    items.Add(new Item()
-                    {
-                        Aisle = currentAisle,
-                        Bin = j
-                    });
-                }
-            else
-                for (int j = start; j >= end; j--)
-                {
-                    items.Add(new Item()
-                    {
-                        Aisle = currentAisle,
-                        Bin = j
-                    });
-                }
-            return items;
+            var maxAisleAisle = GetMaxAisle();
+            var maxRoute = GetRouteOfAisle(maxAisleAisle);
+            var itemNeedFormat = GetItemNeedFormat(maxRoute.Index);
+            itemNeedFormat = _layout.ClockWise ? itemNeedFormat.OrderByDescending(e => e.Bin).ToList() : itemNeedFormat.OrderBy(e => e.Bin).ToList();
+            _formated.AddRange(itemNeedFormat);
         }
 
-        private static void InitData1()
+        private static void SortForMinRoute()
         {
-            _aisles = new List<Item>()
+            var minAisle = GetMinAisle();
+            var minRoute = GetRouteOfAisle(minAisle);
+            var itemNeedFormat = GetItemNeedFormat(minRoute.Index);
+            itemNeedFormat = _layout.ClockWise ? itemNeedFormat.OrderBy(e => e.Bin).ToList() : itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
+            _formated.AddRange(itemNeedFormat);
+        }
+
+        private static void SortForBottomRoute(int i)
+        {
+            var itemNeedFormat = GetItemNeedFormatForBottomRoute(i, !_layout.ClockWise);
+            _formated.AddRange(itemNeedFormat);
+
+            itemNeedFormat = GetItemNeedFormatForBottomRoute(i, _layout.ClockWise);
+            _formated.AddRange(itemNeedFormat);
+        }
+
+        private static void SortForTopRoute(int i)
+        {
+            var itemNeedFormat = GetItemNeedFormatForTopRoute(i, _layout.ClockWise);
+            _formated.AddRange(itemNeedFormat);
+
+            itemNeedFormat = GetItemNeedFormatForTopRoute(i, !_layout.ClockWise);
+            _formated.AddRange(itemNeedFormat);
+        }
+
+        private static Item GetStartingItem(int routeIndex, bool? increase = null)
+        {
+            var route = _layout.Routes.FirstOrDefault(e => e.Index == routeIndex);
+            if (route == null)
+                throw new Exception("Please config starting route");
+            if (_layout.StartFromBottomOfRoute)
+            {
+                return GetStartingItemForBottomOfRoute(routeIndex, increase);
+            }
+            return GetStartingItemForTopOfRoute(routeIndex, increase);
+        }
+
+        private static Item GetStartingItemForTopOfRoute(int routeIndex, bool? increase)
+        {
+            List<Item> items;
+            if (_layout.ClockWise)
+            {
+                // for left
+                items = GetItemNeedFormatForTopRoute(routeIndex, true);
+                if (items.Count != 0)
+                    return items.First();
+                // for right
+                items = GetItemNeedFormatForTopRoute(routeIndex, false);
+                if (items.Count != 0)
+                    return items.First();
+                if (increase == null)
+                    return GetStartingItemForTopOfRoute(++routeIndex, true);
+                if (IsMaxRouteOfData(routeIndex))
+                {
+                    return GetItemOfMaxRoute().First();
+                }
+                return GetStartingItemForTopOfRoute(++routeIndex, true);
+            }
+            items = GetItemNeedFormatForTopRoute(routeIndex, false);
+            if (items.Count == 0 || items.All(e => e.Bin > _layout.HaftBin))
+            {
+                items = GetItemNeedFormatForTopRoute(routeIndex, false);
+                if (items.Count != 0)
+                    return items.First();
+                items = GetItemNeedFormatForTopRoute(routeIndex, true);
+                if (items.Count != 0)
+                    return items.First();
+                if (increase == null)
+                {
+                    return GetStartingItemForTopOfRoute(--routeIndex, false);
+                }
+                if (IsMinRouteOfData(routeIndex))
+                    return GetItemOfMinRoute().First();
+                return GetStartingItemForTopOfRoute(--routeIndex, false);
+            }
+            return items.First();
+        }
+
+        private static List<Item> GetItemOfMinRoute()
+        {
+            var itemNeedFormat = GetItemNeedFormat(GetMinRouteOfData().Index);
+            return _layout.ClockWise ? itemNeedFormat.OrderBy(e => e.Bin).ToList() : itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
+        }
+
+        private static bool IsMinRouteOfData(int routeIndex)
+        {
+            var minRoute = GetMinRouteOfData();
+            return minRoute.Index == routeIndex;
+        }
+
+        private static Route GetMinRouteOfData()
+        {
+            var minAisleAisle = GetMinAisle();
+            return GetRouteOfAisle(minAisleAisle);
+        }
+
+        private static List<Item> GetItemOfMaxRoute()
+        {
+            var itemNeedFormat = GetItemNeedFormat(GetMaxRouteOfData().Index);
+            return _layout.ClockWise ? itemNeedFormat.OrderByDescending(e => e.Bin).ToList() : itemNeedFormat.OrderBy(e => e.Bin).ToList();
+        }
+
+        private static bool IsMaxRouteOfData(int routeIndex)
+        {
+            var maxRoute = GetMaxRouteOfData();
+            return maxRoute.Index == routeIndex;
+        }
+
+        private static Route GetMaxRouteOfData()
+        {
+            var maxAisleAisle = GetMaxAisle();
+            return GetRouteOfAisle(maxAisleAisle);
+        }
+
+        private static Item GetStartingItemForBottomOfRoute(int routeIndex, bool? increase)
+        {
+            List<Item> items;
+            if (_layout.ClockWise)
+            {
+                items = GetItemNeedFormatForBottomRoute(routeIndex, false);
+                if (items.Count != 0)
+                    return items.First();
+                items = GetItemNeedFormatForBottomRoute(routeIndex, true);
+                if (items.Count != 0)
+                    return items.First();
+                if (increase == null)
+                    return GetStartingItemForBottomOfRoute(--routeIndex, false);
+                if (increase.Value)
+                {
+                    if (routeIndex == _layout.Routes.Max(e => e.Index))
+                        return GetStartingItemForBottomOfRoute(--routeIndex, false);
+                    return GetStartingItemForBottomOfRoute(++routeIndex, true);
+                }
+                if (routeIndex == _layout.Routes.Min(e => e.Index))
+                    return GetItemNeedFormatForBottomRoute(routeIndex, false).FirstOrDefault() ?? GetItemNeedFormatForBottomRoute(routeIndex, true).FirstOrDefault();
+                return GetStartingItemForBottomOfRoute(--routeIndex, false);
+            }
+            items = GetItemNeedFormatForBottomRoute(routeIndex, true);
+            if (items.Count != 0)
+                return items.First();
+            items = GetItemNeedFormatForBottomRoute(routeIndex, false);
+            if (items.Count != 0)
+                return items.First();
+            if (increase == null)
+                return GetStartingItemForBottomOfRoute(++routeIndex, true);
+            if (increase.Value)
+            {
+                if (routeIndex == _layout.Routes.Max(e => e.Index))
+                    return GetStartingItemForBottomOfRoute(--routeIndex, false);
+                return GetStartingItemForBottomOfRoute(++routeIndex, true);
+            }
+            if (routeIndex == _layout.Routes.Min(e => e.Index))
+                return GetItemNeedFormatForBottomRoute(routeIndex, true).FirstOrDefault() ?? GetItemNeedFormatForBottomRoute(routeIndex, false).FirstOrDefault();
+            return GetStartingItemForBottomOfRoute(--routeIndex, false);
+        }
+
+        private static List<Item> GetItemNeedFormatForTopRoute(int index, bool leftRoute)
+        {
+            var itemNeedFormat = GetItemNeedFormat(index, leftRoute).Where(e => e.Bin > _layout.HaftBin).ToList();
+            if (_layout.ClockWise)
+            {
+                if (leftRoute)
+                    return itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
+                return itemNeedFormat.OrderBy(e => e.Bin).ToList();
+            }
+            if (leftRoute)
+                return itemNeedFormat.OrderBy(e => e.Bin).ToList();
+            return itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
+        }
+        private static List<Item> GetItemNeedFormatForBottomRoute(int index, bool leftRoute)
+        {
+            var itemNeedFormat = GetItemNeedFormat(index, leftRoute).Where(e => e.Bin <= _layout.HaftBin).ToList();
+            if (_layout.ClockWise)
+            {
+                if (leftRoute)
+                    return itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
+                return itemNeedFormat.OrderBy(e => e.Bin).ToList();
+            }
+            if (leftRoute)
+                return itemNeedFormat.OrderBy(e => e.Bin).ToList();
+            return itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
+        }
+
+        private static Route GetRouteOfAisle(int aisle)
+        {
+            var route = _layout.Routes.FirstOrDefault(e => e.Aisles.Any(f => f.Aisle == aisle));
+            if (route == null)
+                throw new Exception("No any route for this aisle");
+            return route;
+        }
+
+        private static List<Item> GetItemNeedFormat(int routeIndex, bool leftRoute)
+        {
+            var route = _layout.Routes.FirstOrDefault(e => e.Index == routeIndex);
+            if (route == null)
+                throw new Exception("No any route for this aisle");
+            return _data.Where(e => (leftRoute && route.Aisles.Any(f => f.LeftSide && f.Aisle == e.Aisle)) || (!leftRoute && route.Aisles.Any(f => !f.LeftSide && f.Aisle == e.Aisle))).ToList();
+        }
+
+
+        private static List<Item> GetItemNeedFormat(int routeIndex)
+        {
+            var route = _layout.Routes.FirstOrDefault(e => e.Index == routeIndex);
+            if (route == null)
+                throw new Exception("No any route for this aisle");
+            return _data.Where(e => route.Aisles.Any(f => f.Aisle == e.Aisle)).ToList();
+        }
+
+        private static int GetMinAisle()
+        {
+            return _data.Min(e => e.Aisle);
+        }
+        private static int GetMaxAisle()
+        {
+            return _data.Max(e => e.Aisle);
+        }
+
+        private static void InitData()
+        {
+            _data = new List<Item>()
             {
                 new Item{Aisle = 14,Bin = 7},
                 new Item{Aisle = 14,Bin = 3},
@@ -444,173 +340,86 @@ namespace LargestGap
                 new Item{Aisle = 2,Bin = 15},
                 new Item{Aisle = 1,Bin = 17},
                 new Item{Aisle = 1,Bin = 7},
-                new Item{Aisle = 1,Bin = 2}
-            };
-        }
-        private static void InitData2()
-        {
-            _aisles = new List<Item>()
-            {
                 new Item{Aisle = 1,Bin = 2},
-                //new Item{Aisle = 1,Bin = 13},
                 new Item{Aisle = 2,Bin = 4},
-                new Item{Aisle =3,Bin = 2},
-                new Item{Aisle = 2,Bin = 3},
-                new Item{Aisle = 5,Bin = 3},
-                //new Item{Aisle = 4,Bin = 3},
-                //new Item{Aisle = 14,Bin = 14},
-                //new Item{Aisle = 12,Bin = 17},
-                new Item{Aisle = 13,Bin = 5},
-                new Item{Aisle = 13,Bin = 7},
-                new Item{Aisle = 12,Bin = 1},
-                //new Item{Aisle = 12,Bin = 15},
-                new Item{Aisle = 6,Bin = 3},
-                new Item{Aisle = 8,Bin = 7},
-                new Item{Aisle = 7,Bin = 2},
-                new Item{Aisle = 14,Bin = 2},
-                new Item{Aisle = 14,Bin = 10},
-                new Item{Aisle = 16,Bin = 20},
-                new Item{Aisle = 16,Bin = 17},
-                new Item{Aisle = 15,Bin = 17},
-                new Item{Aisle = 15,Bin = 5},
-//                new Item{Aisle = 9,Bin = 15},
-                //new Item{Aisle =2,Bin = 15},
-                new Item{Aisle = 12,Bin = 9},
-                new Item{Aisle = 7,Bin = 11},
+                new Item{Aisle = 3,Bin = 2},
+                new Item{Aisle = 2,Bin = 14},
+                new Item{Aisle = 2,Bin = 16},
+                new Item{Aisle = 3,Bin = 14},
+                new Item{Aisle = 3,Bin = 16}
             };
         }
-        private static void InitData3()
-        {
-            _aisles = new List<Item>()
-            {
-                new Item{Aisle = 14,Bin = 7},
-                new Item{Aisle = 14,Bin = 3},
-                new Item{Aisle = 11,Bin = 5},
-                new Item{Aisle = 10,Bin = 16},
-                new Item{Aisle = 10,Bin = 3},
-                new Item{Aisle = 9,Bin = 6},
-                new Item{Aisle = 7,Bin = 14},
-                new Item{Aisle = 6,Bin = 17},
 
-                new Item{Aisle = 3,Bin = 7},
-                new Item{Aisle = 3,Bin = 17},
-                new Item{Aisle = 2,Bin = 5},
-                new Item{Aisle = 2,Bin = 2},
-                new Item{Aisle = 1,Bin = 7},
-                new Item{Aisle = 1,Bin = 2},
-                new Item{Aisle = 3,Bin = 3}
-            };
-        }
-        private static void InitData4()
+        private static void InitLayout()
         {
-            _aisles = new List<Item>()
+            _layout = new LayoutConfig()
             {
-                new Item{Aisle = 14,Bin = 7},
-                new Item{Aisle = 14,Bin = 3},
-                new Item{Aisle = 11,Bin = 5},
-                new Item{Aisle = 10,Bin = 16},
-                new Item{Aisle = 11,Bin = 17},
-                new Item{Aisle = 10,Bin = 3},
-                new Item{Aisle = 9,Bin = 6},
-                new Item{Aisle = 9,Bin = 16},
-                new Item{Aisle = 7,Bin = 14},
-                new Item{Aisle = 6,Bin = 17},
-
-                new Item{Aisle = 3,Bin = 7},
-                new Item{Aisle = 3,Bin = 17},
-                new Item{Aisle = 2,Bin = 5},
-                new Item{Aisle = 2,Bin = 2},
-                new Item{Aisle = 1,Bin = 7},
-                new Item{Aisle = 1,Bin = 2},
-                new Item{Aisle = 4,Bin = 7},
-                new Item{Aisle = 4,Bin = 17},
-            };
-        }
-        private static void InitData6()
-        {
-            _aisles = new List<Item>()
-            {
-                new Item{Aisle = 14,Bin = 7},
-                new Item{Aisle = 14,Bin = 3},
-                new Item{Aisle = 11,Bin = 5},
-                new Item{Aisle = 10,Bin = 16},
-                new Item{Aisle = 11,Bin = 17},
-                new Item{Aisle = 10,Bin = 3},
-                new Item{Aisle = 9,Bin = 6},
-                new Item{Aisle = 9,Bin = 16},
-                new Item{Aisle = 7,Bin = 14},
-                new Item{Aisle = 6,Bin = 17},
-
-                new Item{Aisle = 3,Bin = 7},
-                new Item{Aisle = 2,Bin = 5},
-                new Item{Aisle = 2,Bin = 2},
-                new Item{Aisle = 1,Bin = 7},
-                new Item{Aisle = 1,Bin = 2},
-                new Item{Aisle = 4,Bin = 7},
-                new Item{Aisle = 4,Bin = 4},
-                new Item{Aisle = 4,Bin = 1},
-            };
-        }
-        private static void InitData7()
-        {
-            _aisles = new List<Item>()
-            {
-                new Item{Aisle = 14,Bin = 7},
-                new Item{Aisle = 14,Bin = 3},
-                new Item{Aisle = 11,Bin = 5},
-                new Item{Aisle = 10,Bin = 16},
-                new Item{Aisle = 11,Bin = 17},
-                new Item{Aisle = 10,Bin = 3},
-                new Item{Aisle = 9,Bin = 6},
-                new Item{Aisle = 9,Bin = 16},
-                new Item{Aisle = 7,Bin = 8},
-                new Item{Aisle = 6,Bin = 17},
-
-                new Item{Aisle = 3,Bin = 7},
-                new Item{Aisle = 2,Bin = 5},
-                new Item{Aisle = 2,Bin = 2},
-                new Item{Aisle = 1,Bin = 7},
-                new Item{Aisle = 1,Bin = 2},
-                new Item{Aisle = 4,Bin = 7},
-                new Item{Aisle = 4,Bin = 4},
-                new Item{Aisle = 4,Bin = 1},
-            };
-        }
-        private static void InitData5()
-        {
-            _aisles = new List<Item>()
-            {
-                new Item{Aisle = 2,Bin = 4},
-                new Item{Aisle =3,Bin = 2},
-                new Item{Aisle = 2,Bin = 3},
-                new Item{Aisle = 5,Bin = 3},
-                //new Item{Aisle = 4,Bin = 3},
-                new Item{Aisle = 16,Bin = 6},
-                new Item{Aisle = 14,Bin = 14},
-                new Item{Aisle = 12,Bin = 17},
-                new Item{Aisle = 13,Bin = 5},
-                new Item{Aisle = 12,Bin = 15},
-                new Item{Aisle = 6,Bin = 3},
-                new Item{Aisle = 8,Bin = 1},
-                new Item{Aisle = 7,Bin = 2},
-                new Item{Aisle = 9,Bin = 2},
-                new Item{Aisle = 8,Bin = 20},
-                new Item{Aisle = 2,Bin = 19},
-                new Item{Aisle = 1,Bin = 9},
-                new Item{Aisle = 5,Bin = 11},
-                new Item{Aisle = 5,Bin = 10},
+                Bin = 20,
+                ClockWise = false,
+                StartFromBottomOfRoute = false,
+                StartRoute = 3,
+                // normal layout
+                Routes = new List<Route>()
+                {
+                    new Route(1, new RouteAisleItem(1)),
+                    new Route(2, new RouteAisleItem(2, true),new RouteAisleItem(3)),
+                    new Route(3, new RouteAisleItem(4, true),new RouteAisleItem(5)),
+                    new Route(4, new RouteAisleItem(6, true),new RouteAisleItem(7)),
+                    new Route(5, new RouteAisleItem(8, true),new RouteAisleItem(9)),
+                    new Route(6, new RouteAisleItem(10, true),new RouteAisleItem(11)),
+                    new Route(7, new RouteAisleItem(12, true),new RouteAisleItem(13)),
+                    new Route(8, new RouteAisleItem(14, true),new RouteAisleItem(15)),
+                    new Route(9, new RouteAisleItem(16, true))
+                }
+                //Routes = new List<Route>()
+                //{
+                //    new Route(1, new RouteAisleItem(1)),
+                //    new Route(2, new RouteAisleItem(2)),
+                //    new Route(3,new RouteAisleItem(3)),
+                //    new Route(4, new RouteAisleItem(4)),
+                //    new Route(5, new RouteAisleItem(5)),
+                //    new Route(6, new RouteAisleItem(6)),
+                //    new Route(7, new RouteAisleItem(7, true),new RouteAisleItem(8)),
+                //    new Route(8, new RouteAisleItem(9, true),new RouteAisleItem(10)),
+                //    new Route(9, new RouteAisleItem(11, true),new RouteAisleItem(12)),
+                //    new Route(10, new RouteAisleItem(13, true),new RouteAisleItem(14)),
+                //    new Route(11, new RouteAisleItem(15, true), new RouteAisleItem(16))
+                //}
             };
         }
     }
 
-    public class Item
+    public class Route
     {
-        public int Aisle { get; set; }
-        public int Bin { get; set; }
-        public override string ToString()
+        public Route(int index, params RouteAisleItem[] aisles)
         {
-            return $"{Aisle} - {Bin}";
+            Index = index;
+            Aisles = aisles.ToList();
         }
+
+        public List<RouteAisleItem> Aisles { get; set; }
+
+        public int Index { get; set; }
+    }
+
+    public class RouteAisleItem
+    {
+        public RouteAisleItem(int aisle, bool leftSide = false)
+        {
+            Aisle = aisle;
+            LeftSide = leftSide;
+        }
+
+        public int Aisle { get; set; }
+        public bool LeftSide { get; set; }
+    }
+    public class LayoutConfig
+    {
+        public List<Route> Routes { get; set; }
+        public int Bin { get; set; }
+        public int HaftBin => Bin / 2;
+        public int StartRoute { get; set; }
+        public bool ClockWise { get; set; }
+        public bool StartFromBottomOfRoute { get; set; }
     }
 }
-

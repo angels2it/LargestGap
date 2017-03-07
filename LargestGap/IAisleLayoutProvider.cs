@@ -15,7 +15,7 @@ namespace LargestGap
     {
         public double GetDistanceForTopRoute(Item lastItemOfFirstAisle, Item nextBin)
         {
-            return Program.Bin - lastItemOfFirstAisle.Bin + (Program.Bin - nextBin.Bin) +
+            return Program1.Bin - lastItemOfFirstAisle.Bin + (Program1.Bin - nextBin.Bin) +
                    (nextBin.Aisle - lastItemOfFirstAisle.Aisle);
         }
 
