@@ -7,11 +7,13 @@ namespace LargestGap
     class Program
     {
         private static LayoutConfig _layout;
+        private static ILayoutProvider _layoutProvider;
         private static List<Item> _data;
         private static List<Item> _formated;
         static void Main(string[] args)
         {
             InitLayout();
+            _layoutProvider = new LayoutProvider(_layout);
             InitData();
             Sort();
             Print();
@@ -34,7 +36,9 @@ namespace LargestGap
                 SortClockWise();
             else
                 SortForCounterClockWise();
-            if (_layout.StartRoute <= 1)
+            var minRoute = GetMinRoute();
+            var maxRoute = GetMaxRoute();
+            if (_layout.StartRoute <= minRoute.Index || _layout.StartRoute >= maxRoute.Index)
                 return;
             // default start route (1)
             var defaultStartRoute = _layout.Routes.First(e => e.Index == _layout.Routes.Min(f => f.Index));
@@ -45,6 +49,11 @@ namespace LargestGap
             // if it's same with default option - do nothing
             if (defaultStartRoute.Aisles.Any(e => e.Aisle == startItem.Aisle))
                 return;
+            UpdateSortListForNewDepotLocation(startItem);
+        }
+
+        private static void UpdateSortListForNewDepotLocation(Item startItem)
+        {
             // index to start item
             var index = _formated.FindIndex(e => e.Aisle == startItem.Aisle && e.Bin == startItem.Bin);
             // move it to top
@@ -56,12 +65,11 @@ namespace LargestGap
             _formated.InsertRange(0, itemNeedFormat);
         }
 
+
         private static void SortForCounterClockWise()
         {
-            var minAisle = GetMinAisle();
-            var minRoute = GetRouteOfAisle(minAisle);
-            var maxAisleAisle = GetMaxAisle();
-            var maxRoute = GetRouteOfAisle(maxAisleAisle);
+            var minRoute = GetMinRoute();
+            var maxRoute = GetMaxRoute();
             for (int i = minRoute.Index + 1; i < maxRoute.Index; i++)
             {
                 SortForBottomRoute(i);
@@ -76,13 +84,21 @@ namespace LargestGap
             SortForMinRoute();
         }
 
+        private static Route GetMinRoute()
+        {
+            var minAisle = GetMinAisle();
+            return _layoutProvider.GetRouteOfAisle(minAisle);
+        }
+        private static Route GetMaxRoute()
+        {
+            var maxAisleAisle = GetMaxAisle();
+            return _layoutProvider.GetRouteOfAisle(maxAisleAisle);
+        }
         private static void SortClockWise()
         {
             // for starting point is route 1
-            var minAisle = GetMinAisle();
-            var minRoute = GetRouteOfAisle(minAisle);
-            var maxAisleAisle = GetMaxAisle();
-            var maxRoute = GetRouteOfAisle(maxAisleAisle);
+            var minRoute = GetMinRoute();
+            var maxRoute = GetMaxRoute();
             SortForMinRoute();
             for (int i = minRoute.Index + 1; i < maxRoute.Index; i++)
             {
@@ -98,8 +114,7 @@ namespace LargestGap
 
         private static void SortForMaxRoute()
         {
-            var maxAisleAisle = GetMaxAisle();
-            var maxRoute = GetRouteOfAisle(maxAisleAisle);
+            var maxRoute = GetMaxRoute();
             var itemNeedFormat = GetItemNeedFormat(maxRoute.Index);
             itemNeedFormat = _layout.ClockWise ? itemNeedFormat.OrderByDescending(e => e.Bin).ToList() : itemNeedFormat.OrderBy(e => e.Bin).ToList();
             _formated.AddRange(itemNeedFormat);
@@ -107,8 +122,7 @@ namespace LargestGap
 
         private static void SortForMinRoute()
         {
-            var minAisle = GetMinAisle();
-            var minRoute = GetRouteOfAisle(minAisle);
+            var minRoute = GetMinRoute();
             var itemNeedFormat = GetItemNeedFormat(minRoute.Index);
             itemNeedFormat = _layout.ClockWise ? itemNeedFormat.OrderBy(e => e.Bin).ToList() : itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
             _formated.AddRange(itemNeedFormat);
@@ -146,26 +160,16 @@ namespace LargestGap
 
         private static Item GetStartingItemForTopOfRoute(int routeIndex, bool? increase)
         {
-            List<Item> items;
             if (_layout.ClockWise)
             {
-                // for left
-                items = GetItemNeedFormatForTopRoute(routeIndex, true);
-                if (items.Count != 0)
-                    return items.First();
-                // for right
-                items = GetItemNeedFormatForTopRoute(routeIndex, false);
-                if (items.Count != 0)
-                    return items.First();
-                if (increase == null)
-                    return GetStartingItemForTopOfRoute(++routeIndex, true);
-                if (IsMaxRouteOfData(routeIndex))
-                {
-                    return GetItemOfMaxRoute().First();
-                }
-                return GetStartingItemForTopOfRoute(++routeIndex, true);
+                return GetStartingItemForTopOfRouteWithClockWise(routeIndex, increase);
             }
-            items = GetItemNeedFormatForTopRoute(routeIndex, false);
+            return GetStartingItemForTopOfRouteWithCoClockWise(routeIndex, increase);
+        }
+
+        private static Item GetStartingItemForTopOfRouteWithCoClockWise(int routeIndex, bool? increase)
+        {
+            var items = GetItemNeedFormatForTopRoute(routeIndex, false);
             if (items.Count == 0 || items.All(e => e.Bin > _layout.HaftBin))
             {
                 items = GetItemNeedFormatForTopRoute(routeIndex, false);
@@ -178,89 +182,105 @@ namespace LargestGap
                 {
                     return GetStartingItemForTopOfRoute(--routeIndex, false);
                 }
-                if (IsMinRouteOfData(routeIndex))
+                if (IsMinRoute(routeIndex))
                     return GetItemOfMinRoute().First();
                 return GetStartingItemForTopOfRoute(--routeIndex, false);
             }
             return items.First();
         }
 
+        private static Item GetStartingItemForTopOfRouteWithClockWise(int routeIndex, bool? increase)
+        {
+            // for left
+            var items = GetItemNeedFormatForTopRoute(routeIndex, true);
+            if (items.Count != 0)
+                return items.First();
+            // for right
+            items = GetItemNeedFormatForTopRoute(routeIndex, false);
+            if (items.Count != 0)
+                return items.First();
+            if (increase == null)
+                return GetStartingItemForTopOfRouteWithClockWise(++routeIndex, true);
+            if (IsMaxRoute(routeIndex))
+            {
+                return GetItemOfMaxRoute().First();
+            }
+            return GetStartingItemForTopOfRouteWithClockWise(++routeIndex, true);
+        }
+
         private static List<Item> GetItemOfMinRoute()
         {
-            var itemNeedFormat = GetItemNeedFormat(GetMinRouteOfData().Index);
+            var itemNeedFormat = GetItemNeedFormat(GetMinRoute().Index);
             return _layout.ClockWise ? itemNeedFormat.OrderBy(e => e.Bin).ToList() : itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
         }
 
-        private static bool IsMinRouteOfData(int routeIndex)
+        private static bool IsMinRoute(int routeIndex)
         {
-            var minRoute = GetMinRouteOfData();
+            var minRoute = GetMinRoute();
             return minRoute.Index == routeIndex;
-        }
-
-        private static Route GetMinRouteOfData()
-        {
-            var minAisleAisle = GetMinAisle();
-            return GetRouteOfAisle(minAisleAisle);
         }
 
         private static List<Item> GetItemOfMaxRoute()
         {
-            var itemNeedFormat = GetItemNeedFormat(GetMaxRouteOfData().Index);
+            var itemNeedFormat = GetItemNeedFormat(GetMaxRoute().Index);
             return _layout.ClockWise ? itemNeedFormat.OrderByDescending(e => e.Bin).ToList() : itemNeedFormat.OrderBy(e => e.Bin).ToList();
         }
 
-        private static bool IsMaxRouteOfData(int routeIndex)
+        private static bool IsMaxRoute(int routeIndex)
         {
-            var maxRoute = GetMaxRouteOfData();
+            var maxRoute = GetMaxRoute();
             return maxRoute.Index == routeIndex;
-        }
-
-        private static Route GetMaxRouteOfData()
-        {
-            var maxAisleAisle = GetMaxAisle();
-            return GetRouteOfAisle(maxAisleAisle);
         }
 
         private static Item GetStartingItemForBottomOfRoute(int routeIndex, bool? increase)
         {
-            List<Item> items;
             if (_layout.ClockWise)
             {
-                items = GetItemNeedFormatForBottomRoute(routeIndex, false);
-                if (items.Count != 0)
-                    return items.First();
-                items = GetItemNeedFormatForBottomRoute(routeIndex, true);
-                if (items.Count != 0)
-                    return items.First();
-                if (increase == null)
-                    return GetStartingItemForBottomOfRoute(--routeIndex, false);
-                if (increase.Value)
-                {
-                    if (routeIndex == _layout.Routes.Max(e => e.Index))
-                        return GetStartingItemForBottomOfRoute(--routeIndex, false);
-                    return GetStartingItemForBottomOfRoute(++routeIndex, true);
-                }
-                if (routeIndex == _layout.Routes.Min(e => e.Index))
-                    return GetItemNeedFormatForBottomRoute(routeIndex, false).FirstOrDefault() ?? GetItemNeedFormatForBottomRoute(routeIndex, true).FirstOrDefault();
-                return GetStartingItemForBottomOfRoute(--routeIndex, false);
+                return GetStartingItemForBottomOfRouteWithClockwise(routeIndex, increase);
             }
-            items = GetItemNeedFormatForBottomRoute(routeIndex, true);
+            return GetStartingItemForBottomOfRouteWithCoClockWise(routeIndex, increase);
+        }
+
+        private static Item GetStartingItemForBottomOfRouteWithCoClockWise(int routeIndex, bool? increase)
+        {
+            var items = GetItemNeedFormatForBottomRoute(routeIndex, true);
             if (items.Count != 0)
                 return items.First();
             items = GetItemNeedFormatForBottomRoute(routeIndex, false);
             if (items.Count != 0)
                 return items.First();
             if (increase == null)
-                return GetStartingItemForBottomOfRoute(++routeIndex, true);
+                return GetStartingItemForBottomOfRouteWithCoClockWise(++routeIndex, true);
             if (increase.Value)
             {
                 if (routeIndex == _layout.Routes.Max(e => e.Index))
-                    return GetStartingItemForBottomOfRoute(--routeIndex, false);
-                return GetStartingItemForBottomOfRoute(++routeIndex, true);
+                    return GetStartingItemForBottomOfRouteWithCoClockWise(--routeIndex, false);
+                return GetStartingItemForBottomOfRouteWithCoClockWise(++routeIndex, true);
             }
             if (routeIndex == _layout.Routes.Min(e => e.Index))
                 return GetItemNeedFormatForBottomRoute(routeIndex, true).FirstOrDefault() ?? GetItemNeedFormatForBottomRoute(routeIndex, false).FirstOrDefault();
-            return GetStartingItemForBottomOfRoute(--routeIndex, false);
+            return GetStartingItemForBottomOfRouteWithCoClockWise(--routeIndex, false);
+        }
+
+        private static Item GetStartingItemForBottomOfRouteWithClockwise(int routeIndex, bool? increase)
+        {
+            var items = GetItemNeedFormatForBottomRoute(routeIndex, false);
+            if (items.Count != 0)
+                return items.First();
+            items = GetItemNeedFormatForBottomRoute(routeIndex, true);
+            if (items.Count != 0)
+                return items.First();
+            if (increase == null)
+                return GetStartingItemForBottomOfRouteWithClockwise(--routeIndex, false);
+            if (increase.Value)
+            {
+                if (routeIndex == _layout.Routes.Max(e => e.Index))
+                    return GetStartingItemForBottomOfRouteWithClockwise(--routeIndex, false);
+                return GetStartingItemForBottomOfRouteWithClockwise(++routeIndex, true);
+            }
+            if (routeIndex == _layout.Routes.Min(e => e.Index))
+                return GetItemNeedFormatForBottomRoute(routeIndex, false).FirstOrDefault() ?? GetItemNeedFormatForBottomRoute(routeIndex, true).FirstOrDefault();
+            return GetStartingItemForBottomOfRouteWithClockwise(--routeIndex, false);
         }
 
         private static List<Item> GetItemNeedFormatForTopRoute(int index, bool leftRoute)
@@ -268,50 +288,31 @@ namespace LargestGap
             var itemNeedFormat = GetItemNeedFormat(index, leftRoute).Where(e => e.Bin > _layout.HaftBin).ToList();
             if (_layout.ClockWise)
             {
-                if (leftRoute)
-                    return itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
-                return itemNeedFormat.OrderBy(e => e.Bin).ToList();
+                return _layoutProvider.ClockWiseOrderItem(itemNeedFormat, leftRoute);
             }
-            if (leftRoute)
-                return itemNeedFormat.OrderBy(e => e.Bin).ToList();
-            return itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
+            return _layoutProvider.CounterClockWiseOrderItem(itemNeedFormat, leftRoute);
         }
         private static List<Item> GetItemNeedFormatForBottomRoute(int index, bool leftRoute)
         {
             var itemNeedFormat = GetItemNeedFormat(index, leftRoute).Where(e => e.Bin <= _layout.HaftBin).ToList();
             if (_layout.ClockWise)
             {
-                if (leftRoute)
-                    return itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
-                return itemNeedFormat.OrderBy(e => e.Bin).ToList();
+                return _layoutProvider.ClockWiseOrderItem(itemNeedFormat, leftRoute);
             }
-            if (leftRoute)
-                return itemNeedFormat.OrderBy(e => e.Bin).ToList();
-            return itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
+            return _layoutProvider.CounterClockWiseOrderItem(itemNeedFormat, leftRoute);
         }
 
-        private static Route GetRouteOfAisle(int aisle)
-        {
-            var route = _layout.Routes.FirstOrDefault(e => e.Aisles.Any(f => f.Aisle == aisle));
-            if (route == null)
-                throw new Exception("No any route for this aisle");
-            return route;
-        }
 
         private static List<Item> GetItemNeedFormat(int routeIndex, bool leftRoute)
         {
-            var route = _layout.Routes.FirstOrDefault(e => e.Index == routeIndex);
-            if (route == null)
-                throw new Exception("No any route for this aisle");
+            var route = _layoutProvider.GetRoute(routeIndex);
             return _data.Where(e => (leftRoute && route.Aisles.Any(f => f.LeftSide && f.Aisle == e.Aisle)) || (!leftRoute && route.Aisles.Any(f => !f.LeftSide && f.Aisle == e.Aisle))).ToList();
         }
 
 
         private static List<Item> GetItemNeedFormat(int routeIndex)
         {
-            var route = _layout.Routes.FirstOrDefault(e => e.Index == routeIndex);
-            if (route == null)
-                throw new Exception("No any route for this aisle");
+            var route = _layoutProvider.GetRoute(routeIndex);
             return _data.Where(e => route.Aisles.Any(f => f.Aisle == e.Aisle)).ToList();
         }
 
@@ -387,39 +388,5 @@ namespace LargestGap
                 //}
             };
         }
-    }
-
-    public class Route
-    {
-        public Route(int index, params RouteAisleItem[] aisles)
-        {
-            Index = index;
-            Aisles = aisles.ToList();
-        }
-
-        public List<RouteAisleItem> Aisles { get; set; }
-
-        public int Index { get; set; }
-    }
-
-    public class RouteAisleItem
-    {
-        public RouteAisleItem(int aisle, bool leftSide = false)
-        {
-            Aisle = aisle;
-            LeftSide = leftSide;
-        }
-
-        public int Aisle { get; set; }
-        public bool LeftSide { get; set; }
-    }
-    public class LayoutConfig
-    {
-        public List<Route> Routes { get; set; }
-        public int Bin { get; set; }
-        public int HaftBin => Bin / 2;
-        public int StartRoute { get; set; }
-        public bool ClockWise { get; set; }
-        public bool StartFromBottomOfRoute { get; set; }
     }
 }

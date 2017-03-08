@@ -44,9 +44,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="IAisleLayoutProvider.cs" />
+    <Compile Include="LayoutConfig.cs" />
+    <Compile Include="LayoutProvider.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Program1.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Route.cs" />
+    <Compile Include="RouteAisleItem.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
