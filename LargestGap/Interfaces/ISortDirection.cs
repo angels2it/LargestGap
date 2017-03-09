@@ -1,12 +1,8 @@
-﻿using System.Collections.Generic;
-
-namespace LargestGap
+﻿namespace LargestGap.Interfaces
 {
-    public interface ISorting
+    public interface ISortDirection
     {
-        List<Item> Sort(List<Item> data);
         void SortWithNormalDepot();
-        void SortForCustomDepot();
         void SortForMaxRoute();
         void SortForMinRoute();
         void SortForBottomRoute(int i);

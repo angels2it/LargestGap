@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using LargestGap.Interfaces;
+using LargestGap.Sort;
 
 namespace LargestGap
 {
@@ -10,20 +11,21 @@ namespace LargestGap
         private static ILayoutProvider _layoutProvider;
         private static List<Item> _data;
         private static List<Item> _formated;
-        private static ISorting _sorting;
+        private static ISorter _sort;
         static void Main(string[] args)
         {
             InitLayout();
             _layoutProvider = new LayoutProvider(_layout);
-            _sorting = new Sorting(_layout, _layoutProvider);
+            _sort = new Sorter(_layout, _layoutProvider);
             InitData();
-            _formated = _sorting.Sort(_data);
+            _formated = _sort.Sort(_data);
             Print();
             Console.ReadLine();
         }
 
         private static void Print()
         {
+            Console.WriteLine(_layout.ToString());
             foreach (var item in _formated)
             {
                 Console.WriteLine(item.ToString());
@@ -66,7 +68,7 @@ namespace LargestGap
                 Bin = 20,
                 ClockWise = true,
                 StartFromBottomOfRoute = true,
-                StartRoute = 4,
+                StartRoute = 3,
                 // normal layout
                 Routes = new List<Route>()
                 {

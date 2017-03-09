@@ -10,5 +10,10 @@ namespace LargestGap
         public int StartRoute { get; set; }
         public bool ClockWise { get; set; }
         public bool StartFromBottomOfRoute { get; set; }
+
+        public override string ToString()
+        {
+            return $"StartRoute: {StartRoute} - StartFromBottom: {StartFromBottomOfRoute}";
+        }
     }
 }

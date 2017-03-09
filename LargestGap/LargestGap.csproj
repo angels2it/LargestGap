@@ -43,8 +43,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="IAisleLayoutProvider.cs" />
-    <Compile Include="ISorting.cs" />
+    <Compile Include="Interfaces\IAisleLayoutProvider.cs" />
+    <Compile Include="Interfaces\ISort.cs" />
+    <Compile Include="Interfaces\ISortDirection.cs" />
+    <Compile Include="Interfaces\ISorter.cs" />
+    <Compile Include="Sort\Sorter.cs" />
     <Compile Include="LayoutConfig.cs" />
     <Compile Include="LayoutProvider.cs" />
     <Compile Include="Program.cs" />
@@ -52,9 +55,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Route.cs" />
     <Compile Include="RouteAisleItem.cs" />
-    <Compile Include="SortForClockwiseTopDepot.cs" />
-    <Compile Include="Sorting.cs" />
-    <Compile Include="SortingClockWiseBottomDepot.cs" />
+    <Compile Include="Sort\SortClockWise.cs" />
+    <Compile Include="Sort\SortCoClockWise.cs" />
+    <Compile Include="Sort\SortCoClockWiseBottomDepot.cs" />
+    <Compile Include="Sort\SortCoClockWiseTopDepot.cs" />
+    <Compile Include="Sort\SortClockwiseTopDepot.cs" />
+    <Compile Include="Sort\Sort.cs" />
+    <Compile Include="Sort\SortClockWiseBottomDepot.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
