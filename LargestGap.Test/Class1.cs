@@ -1,64 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using NUnit.Framework;
 
-namespace LargestGap
+namespace LargestGap.Test
 {
-    class Program
+    [TestFixture]
+    public class Class1
     {
         private static LayoutConfig _layout;
-        private static ILayoutProvider _layoutProvider;
-        private static List<Item> _data;
-        private static List<Item> _formated;
-        private static ISorting _sorting;
-        static void Main(string[] args)
+        private LayoutProvider _layoutProvider;
+
+        public Class1()
         {
             InitLayout();
             _layoutProvider = new LayoutProvider(_layout);
-            _sorting = new Sorting(_layout, _layoutProvider);
-            InitData();
-            _formated = _sorting.Sort(_data);
-            Print();
-            Console.ReadLine();
         }
-
-        private static void Print()
-        {
-            foreach (var item in _formated)
-            {
-                Console.WriteLine(item.ToString());
-            }
-        }
-
-
-        private static void InitData()
-        {
-            _data = new List<Item>()
-            {
-                new Item{Aisle = 14,Bin = 17},
-                new Item{Aisle = 15,Bin = 17},
-                new Item{Aisle = 14,Bin = 18},
-                new Item{Aisle = 11,Bin = 5},
-                new Item{Aisle = 10,Bin = 16},
-                new Item{Aisle = 10,Bin = 3},
-                new Item{Aisle = 9,Bin = 6},
-                new Item{Aisle = 7,Bin = 14},
-                new Item{Aisle = 6,Bin = 17},
-                new Item{Aisle = 3,Bin = 7},
-                new Item{Aisle = 2,Bin = 15},
-                new Item{Aisle = 1,Bin = 17},
-                new Item{Aisle = 1,Bin = 7},
-                new Item{Aisle = 1,Bin = 2},
-                new Item{Aisle = 2,Bin = 4},
-                new Item{Aisle = 3,Bin = 2},
-                new Item{Aisle = 2,Bin = 14},
-                new Item{Aisle = 2,Bin = 16},
-                new Item{Aisle = 3,Bin = 14},
-                new Item{Aisle = 3,Bin = 16},
-                new Item{Aisle = 4,Bin = 6}
-            };
-        }
-
         private static void InitLayout()
         {
             _layout = new LayoutConfig()
@@ -107,6 +66,15 @@ namespace LargestGap
                 //    new Route(11, new RouteAisleItem(15, true), new RouteAisleItem(16))
                 //}
             };
+        }
+        [Test]
+        public void TestSort()
+        {
+            // arrange
+            var s = new Sorting(_layout, _layoutProvider);
+            // act
+            
+            // assert
         }
     }
 }

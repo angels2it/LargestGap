@@ -10,6 +10,12 @@ namespace LargestGap
         Route GetRoute(int routeIndex);
         List<Item> ClockWiseOrderItem(List<Item> itemNeedFormat, bool leftRoute);
         List<Item> CounterClockWiseOrderItem(List<Item> itemNeedFormat, bool leftRoute);
+        List<Item> GetItemNeedFormat(List<Item> data, int routeIndex, bool leftRoute);
+        List<Item> GetItemNeedFormat(List<Item> data, int routeIndex);
+        int GetMinAisle(List<Item> data);
+        int GetMaxAisle(List<Item> data);
+        Route GetMinRoute(List<Item> data);
+        Route GetMaxRoute(List<Item> data);
     }
 
     public class LayoutProvider : ILayoutProvider
@@ -49,6 +55,37 @@ namespace LargestGap
             if (leftRoute)
                 return itemNeedFormat.OrderBy(e => e.Bin).ToList();
             return itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
+        }
+
+        public List<Item> GetItemNeedFormat(List<Item> data, int routeIndex, bool leftRoute)
+        {
+            var route = GetRoute(routeIndex);
+            return data.Where(e => (leftRoute && route.Aisles.Any(f => f.LeftSide && f.Aisle == e.Aisle)) || (!leftRoute && route.Aisles.Any(f => !f.LeftSide && f.Aisle == e.Aisle))).ToList();
+        }
+
+
+        public List<Item> GetItemNeedFormat(List<Item> data, int routeIndex)
+        {
+            var route = GetRoute(routeIndex);
+            return data.Where(e => route.Aisles.Any(f => f.Aisle == e.Aisle)).ToList();
+        }
+        public int GetMinAisle(List<Item> data)
+        {
+            return data.Min(e => e.Aisle);
+        }
+        public int GetMaxAisle(List<Item> data)
+        {
+            return data.Max(e => e.Aisle);
+        }
+        public Route GetMinRoute(List<Item> data)
+        {
+            var minAisle = GetMinAisle(data);
+            return GetRouteOfAisle(minAisle);
+        }
+        public Route GetMaxRoute(List<Item> data)
+        {
+            var maxAisleAisle = GetMaxAisle(data);
+            return GetRouteOfAisle(maxAisleAisle);
         }
     }
 }
