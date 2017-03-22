@@ -24,10 +24,8 @@ namespace LargestGap.Sort
             var minRoute = LayoutProvider.GetMinRoute(Data);
             var maxRoute = LayoutProvider.GetMaxRoute(Data);
             item = null;
-            if (Layout.StartRoute < minRoute.Index ||
-                Layout.StartRoute > maxRoute.Index ||
-                (Layout.StartRoute == minRoute.Index && Layout.StartFromBottomOfRoute)
-                )
+            if ((Layout.StartRoute <= minRoute.Index && Layout.StartFromBottomOfRoute) ||
+                (Layout.StartRoute > maxRoute.Index && Layout.StartFromBottomOfRoute))
                 return false;
             // get start item of layout
             var startItem = GetStartingItem();

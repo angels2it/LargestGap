@@ -46,15 +46,15 @@ namespace LargestGap
         public List<Item> ClockWiseOrderItem(List<Item> itemNeedFormat, bool leftRoute)
         {
             if (leftRoute)
-                return itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
-            return itemNeedFormat.OrderBy(e => e.Bin).ToList();
+                return itemNeedFormat.OrderByDescending(e => e.Bin).ThenBy(e => e.Aisle).ToList();
+            return itemNeedFormat.OrderBy(e => e.Bin).ThenByDescending(e => e.Aisle).ToList();
         }
 
         public List<Item> CounterClockWiseOrderItem(List<Item> itemNeedFormat, bool leftRoute)
         {
             if (leftRoute)
-                return itemNeedFormat.OrderBy(e => e.Bin).ToList();
-            return itemNeedFormat.OrderByDescending(e => e.Bin).ToList();
+                return itemNeedFormat.OrderBy(e => e.Bin).ThenBy(e => e.Aisle).ToList();
+            return itemNeedFormat.OrderByDescending(e => e.Bin).ThenByDescending(e => e.Aisle).ToList();
         }
 
         public List<Item> GetItemNeedFormat(List<Item> data, int routeIndex, bool leftRoute)

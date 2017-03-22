@@ -32,7 +32,7 @@ namespace LargestGap.Sort
         {
             var maxRoute = LayoutProvider.GetMaxRoute(Data);
             var itemNeedFormat = LayoutProvider.GetItemNeedFormat(Data, maxRoute.Index);
-            itemNeedFormat = itemNeedFormat.OrderBy(e => e.Bin).ThenByDescending(e => e.Aisle).ToList();
+            itemNeedFormat = itemNeedFormat.OrderBy(e => e.Bin).ThenBy(e => e.Aisle).ToList();
             Formated.AddRange(itemNeedFormat);
         }
 
@@ -46,29 +46,29 @@ namespace LargestGap.Sort
 
         public void SortForBottomRoute(int i)
         {
-            var itemNeedFormat = GetItemNeedFormatForBottomRoute(i, !Layout.ClockWise);
+            var itemNeedFormat = GetItemNeedFormatForBottomRoute(i, true);
             Formated.AddRange(itemNeedFormat);
 
-            itemNeedFormat = GetItemNeedFormatForBottomRoute(i, Layout.ClockWise);
-            Formated.AddRange(itemNeedFormat);
+            //itemNeedFormat = GetItemNeedFormatForBottomRoute(i, Layout.ClockWise);
+            //Formated.AddRange(itemNeedFormat);
         }
 
         public void SortForTopRoute(int i)
         {
-            var itemNeedFormat = GetItemNeedFormatForTopRoute(i, Layout.ClockWise);
+            var itemNeedFormat = GetItemNeedFormatForTopRoute(i, false);
             Formated.AddRange(itemNeedFormat);
 
-            itemNeedFormat = GetItemNeedFormatForTopRoute(i, !Layout.ClockWise);
-            Formated.AddRange(itemNeedFormat);
+            //itemNeedFormat = GetItemNeedFormatForTopRoute(i, !Layout.ClockWise);
+            //Formated.AddRange(itemNeedFormat);
         }
         private List<Item> GetItemNeedFormatForTopRoute(int index, bool leftRoute)
         {
-            var itemNeedFormat = LayoutProvider.GetItemNeedFormat(Data, index, leftRoute).Where(e => e.Bin > Layout.HaftBin).ToList();
+            var itemNeedFormat = LayoutProvider.GetItemNeedFormat(Data, index).Where(e => e.Bin > Layout.HaftBin).ToList();
             return LayoutProvider.CounterClockWiseOrderItem(itemNeedFormat, leftRoute);
         }
         private List<Item> GetItemNeedFormatForBottomRoute(int index, bool leftRoute)
         {
-            var itemNeedFormat = LayoutProvider.GetItemNeedFormat(Data, index, leftRoute).Where(e => e.Bin <= Layout.HaftBin).ToList();
+            var itemNeedFormat = LayoutProvider.GetItemNeedFormat(Data, index).Where(e => e.Bin <= Layout.HaftBin).ToList();
             return LayoutProvider.CounterClockWiseOrderItem(itemNeedFormat, leftRoute);
         }
     }

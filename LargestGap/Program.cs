@@ -48,9 +48,9 @@ namespace LargestGap
                 new Item{Aisle = 6,Bin = 17},
                 new Item{Aisle = 3,Bin = 7},
                 new Item{Aisle = 2,Bin = 15},
-                new Item{Aisle = 1,Bin = 17},
-                new Item{Aisle = 1,Bin = 7},
-                new Item{Aisle = 1,Bin = 2},
+                //new Item{Aisle = 1,Bin = 17},
+                //new Item{Aisle = 1,Bin = 7},
+                //new Item{Aisle = 1,Bin = 2},
                 new Item{Aisle = 2,Bin = 4},
                 new Item{Aisle = 3,Bin = 2},
                 new Item{Aisle = 2,Bin = 14},
@@ -66,9 +66,9 @@ namespace LargestGap
             _layout = new LayoutConfig()
             {
                 Bin = 20,
-                ClockWise = true,
-                StartFromBottomOfRoute = true,
-                StartRoute = 3,
+                ClockWise = false,
+                StartFromBottomOfRoute = false,
+                StartRoute = 1,
                 // normal layout
                 Routes = new List<Route>()
                 {
